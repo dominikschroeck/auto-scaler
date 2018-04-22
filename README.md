@@ -1,4 +1,4 @@
-# Building an Optimizer for Dynamic Scaling of Stream Processing Engine
+# UNDER PROGRESS PROJECT: Building an Optimizer for Dynamic Scaling of Stream Processing Engine
 
 This repo contains the code generated for the Master Thesis of Dominik Schroeck, at TU Berlin. It was supervised by Jeyhun Karimov and Bonaventura Del Monte (DFKI).
 The thesis deals with developing an optimizer that decides dynamically if scaling out of certain operators out of the streaming topology makes sense.
@@ -25,4 +25,42 @@ Location: [src/benchmark_libraries](https://gitlab.tu-berlin.de/dominikschroeck/
 
 Here you will find the custom serializers for improving throughput.
 
-## TODO: Benchmarks and more
+### Benchmarks
+The Project "benchmark_largestate" contains the Java Project for the two Benchmarks (PSM and NexMark).
+
+Location: [src/benchmark_largestate](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/benchmark_largestate)
+
+### Rescaler
+The actual rescaler is available in [src/rescaler](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/rescaler)
+Note that it is highly tailored for the benchmarks and requires a lot of reconfiguration to match other benchmarks. It employs many Custom Metrics you first need to employ! Plus naming for the operators. The configuration file config.py gives great hints.
+Requires [src/scripts/stateSize_measure.py](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/scripts7stateSize_measure.py) running on the Job Master node. 
+
+The whole rescaler is tailored to work on cluster of TU Berlin and my personal server. If you have the time, make it more general. Should not be too complex. Simple Python.
+
+The approach is easy to udnerstand:
+- After 3 Latency Violations of one query in a row: Take An action
+- Take top $k$ slowest (highest latency) operators and compute optimal parallelism to tackle input rate:
+ - For Windows: Add 2 Channels --> Bring a better idea, please! I was fighting with different custom metrics but no solution to identify optimal parallelism!
+ - For Continuous operators: Optimal Parallelism = Input Rate / Throughput Per channel
+
+## Compile Benchmarks and Start them
+Easiest way is to enter [src/scripts](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/scripts) and run the (Linux) script build_package.sh. It will compile all relevant parts, install them to your MVN repo and output into the subdirectory "build-target".
+
+### Configuration files
+You run the jobs using the standard Flink way. Note that you have to use configuration files that are available in  [experiments](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/experiments). The producer also requires config files which are available there as well.
+
+### Run the Rescaler
+```bash
+python3 rescaler.py
+```
+Run this on the node that runs Graphite and configure the config.py file to read form the whisper directory. Also configure the taskmanagers in the config.py! On Scaling it copies a new configuration file to a web server directory. Please amend this in the code for your needs!
+
+The jobmanager node requires the server.py to run. It regularly checks the webserver for the new config file and downloads. Why this complex setup, and not direct TCP/IP Connection? The cluster I use is behind a firewall and restricts direct TCP IP connections! Soon, I will change this!
+The script will restart the job creating a savepoint.
+
+## Requirements
+- JDK 1.8 or higher
+- Maven
+- Graphite set up using Whisper (default setup)
+- Apache Kafka (Scripts for creating topics available in [src/scripts](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/scripts)
+- Linux (although also should work in windows for local deployment)
