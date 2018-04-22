@@ -64,3 +64,5 @@ The script will restart the job creating a savepoint.
 - Graphite set up using Whisper (default setup)
 - Apache Kafka (Scripts for creating topics available in [src/scripts](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/scripts)
 - Linux (although also should work in windows for local deployment)
+
+*Please note that this whole project is so tailored for my master thesis jobs and the cluster environment that you will have to change a lot of setup (using my personal server you don't have access to, Cluster node names...).*
