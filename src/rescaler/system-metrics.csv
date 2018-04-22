@@ -1,0 +1,8 @@
+System,Status/JVM/Memory/Heap/Used
+System,lastCheckpointDuration
+System,restartingTime
+System,Status/JVM/CPU/Load
+System,sum_tx_rx
+System,taskSlotsAvailable
+System,taskSlotsTotal
+System,stateSize

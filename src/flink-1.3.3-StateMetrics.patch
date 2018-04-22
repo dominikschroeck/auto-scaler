@@ -1,0 +1,290 @@
+diff --git a/flink-streaming-java/src/main/java/org/apache/flink/streaming/changeablegauge/ChangeableGauge.java b/flink-streaming-java/src/main/java/org/apache/flink/streaming/changeablegauge/ChangeableGauge.java
+new file mode 100644
+index 0000000000..ed643e3a6d
+--- /dev/null
++++ b/flink-streaming-java/src/main/java/org/apache/flink/streaming/changeablegauge/ChangeableGauge.java
+@@ -0,0 +1,16 @@
++/**
++ * Simple Gauge extension where you can modify the guage value from outside.
++ */
++package org.apache.flink.streaming.changeablegauge;
++import org.apache.flink.metrics.Gauge;
++/**
++ * Class Implementaion of ChangeableGauge.
++ */
++public class ChangeableGauge implements Gauge<Long> {
++	public volatile Long val = 0L;
++
++	@Override public Long getValue() {
++	return val;
++	}
++}
++
+diff --git a/flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java b/flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java
+index fb5f0e7f36..d98a659107 100644
+--- a/flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java
++++ b/flink-streaming-java/src/main/java/org/apache/flink/streaming/runtime/tasks/StreamTask.java
+@@ -16,11 +16,11 @@
+  */
+ 
+ package org.apache.flink.streaming.runtime.tasks;
+-
+ import java.io.Closeable;
+ import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Collection;
++import java.util.HashMap;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.concurrent.ExecutorService;
+@@ -44,6 +44,7 @@ import org.apache.flink.runtime.io.network.api.serialization.EventSerializer;
+ import org.apache.flink.runtime.io.network.api.writer.ResultPartitionWriter;
+ import org.apache.flink.runtime.jobgraph.tasks.AbstractInvokable;
+ import org.apache.flink.runtime.jobgraph.tasks.StatefulTask;
++import org.apache.flink.runtime.metrics.groups.TaskMetricGroup;
+ import org.apache.flink.runtime.state.AbstractKeyedStateBackend;
+ import org.apache.flink.runtime.state.AbstractStateBackend;
+ import org.apache.flink.runtime.state.ChainedStateHandle;
+@@ -62,6 +63,7 @@ import org.apache.flink.streaming.api.graph.StreamConfig;
+ import org.apache.flink.streaming.api.operators.OperatorSnapshotResult;
+ import org.apache.flink.streaming.api.operators.Output;
+ import org.apache.flink.streaming.api.operators.StreamOperator;
++import org.apache.flink.streaming.changeablegauge.ChangeableGauge;
+ import org.apache.flink.streaming.runtime.io.RecordWriterOutput;
+ import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+ import org.apache.flink.streaming.runtime.streamstatus.StreamStatusMaintainer;
+@@ -72,6 +74,7 @@ import org.apache.flink.util.Preconditions;
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+ 
++
+ /**
+  * Base class for all streaming tasks. A task is the unit of local processing that is deployed
+  * and executed by the TaskManagers. Each task runs one or more {@link StreamOperator}s which form
+@@ -185,6 +188,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 
+ 	protected abstract void cancelTask() throws Exception;
+ 
++	private final HashMap<String, ChangeableGauge> chkMetricsMap = new HashMap<>();
++
++
++
+ 	// ------------------------------------------------------------------------
+ 	//  Core work methods of the Stream Task
+ 	// ------------------------------------------------------------------------
+@@ -203,8 +210,45 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 		timerService = timeProvider;
+ 	}
+ 
++
++
+ 	@Override
+ 	public final void invoke() throws Exception {
++		TaskMetricGroup tmgroup = getEnvironment().getMetricGroup();
++
++		ChangeableGauge asyncDurationMillis = new ChangeableGauge();
++		ChangeableGauge syncDurationMillis = new ChangeableGauge();
++		ChangeableGauge alignmentDurationMillis = new ChangeableGauge();
++		ChangeableGauge bytesAlignment = new ChangeableGauge();
++		ChangeableGauge checkPointID = new ChangeableGauge();
++		ChangeableGauge stateSize = new ChangeableGauge();
++
++
++		/**
++		 * Register metrics
++		 */
++
++		tmgroup.gauge("asyncDurationMillis", asyncDurationMillis);
++		tmgroup.gauge("syncDurationMillis", syncDurationMillis);
++		tmgroup.gauge("alignmentDurationMillis", alignmentDurationMillis);
++		tmgroup.gauge("bytesAlignment", bytesAlignment);
++		tmgroup.gauge("checkPointID", checkPointID);
++		tmgroup.gauge("stateSize", stateSize);
++
++
++		/**
++		 * Store in a HashMap
++		 */
++
++		this.chkMetricsMap.put("asyncDurationMillis", asyncDurationMillis);
++		this.chkMetricsMap.put("syncDurationMillis", syncDurationMillis);
++		this.chkMetricsMap.put("alignmentDurationMillis", alignmentDurationMillis);
++		this.chkMetricsMap.put("bytesAlignment", bytesAlignment);
++		this.chkMetricsMap.put("checkPointID", checkPointID);
++		this.chkMetricsMap.put("stateSize", stateSize);
++
++
++
+ 
+ 		boolean disposed = false;
+ 		try {
+@@ -505,6 +549,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 	//  Checkpoint and Restore
+ 	// ------------------------------------------------------------------------
+ 
++
++
+ 	@Override
+ 	public void setInitialState(TaskStateHandles taskStateHandles) {
+ 		this.restoreStateHandles = taskStateHandles;
+@@ -649,7 +695,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 			this,
+ 			checkpointMetaData,
+ 			checkpointOptions,
+-			checkpointMetrics);
++			checkpointMetrics, chkMetricsMap);
+ 
+ 		checkpointingOperation.executeCheckpointing();
+ 	}
+@@ -858,8 +904,12 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 		private final CheckpointMetaData checkpointMetaData;
+ 		private final CheckpointMetrics checkpointMetrics;
+ 
++		private HashMap<String, ChangeableGauge> chkMetricsMap;
++
+ 		private final long asyncStartNanos;
+ 
++
++
+ 		private final AtomicReference<CheckpointingOperation.AsynCheckpointState> asyncCheckpointState = new AtomicReference<>(
+ 			CheckpointingOperation.AsynCheckpointState.RUNNING);
+ 
+@@ -868,8 +918,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 				List<StreamStateHandle> nonPartitionedStateHandles,
+ 				List<OperatorSnapshotResult> snapshotInProgressList,
+ 				CheckpointMetaData checkpointMetaData,
+-				CheckpointMetrics checkpointMetrics,
+-				long asyncStartNanos) {
++				CheckpointMetrics checkpointMetrics, long asyncStartNanos,
++				HashMap<String, ChangeableGauge> chkMetricsMap
++
++				) {
+ 
+ 			this.owner = Preconditions.checkNotNull(owner);
+ 			this.snapshotInProgressList = Preconditions.checkNotNull(snapshotInProgressList);
+@@ -877,6 +929,11 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 			this.checkpointMetrics = Preconditions.checkNotNull(checkpointMetrics);
+ 			this.nonPartitionedStateHandles = nonPartitionedStateHandles;
+ 			this.asyncStartNanos = asyncStartNanos;
++			this.chkMetricsMap = chkMetricsMap;
++
++
++
++
+ 
+ 			if (!snapshotInProgressList.isEmpty()) {
+ 				// TODO Currently only the head operator of a chain can have keyed state, so simply access it directly.
+@@ -889,6 +946,9 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 			}
+ 		}
+ 
++
++
++
+ 		@Override
+ 		public void run() {
+ 			FileSystemSafetyNet.initializeSafetyNetForThread();
+@@ -936,6 +996,61 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 				if (asyncCheckpointState.compareAndSet(CheckpointingOperation.AsynCheckpointState.RUNNING,
+ 						CheckpointingOperation.AsynCheckpointState.COMPLETED)) {
+ 
++
++					final long syncDurationMillis = checkpointMetrics.getSyncDurationMillis();
++					final long alignemnt = checkpointMetrics.getAlignmentDurationNanos() / 1_000_000;
++					final long bytesAlignment = checkpointMetrics.getBytesBufferedInAlignment();
++					final long checkPointID = checkpointMetaData.getCheckpointId();
++
++					long stateSize = 0L;
++					if (subtaskState == null){
++						// DO NOTHIN
++					} else {
++						stateSize = subtaskState.getStateSize(); }
++					final String name = owner.getName();
++
++					//final long countInList = subtaskState.
++
++
++					this.chkMetricsMap.get("asyncDurationMillis").val = asyncDurationMillis;
++					this.chkMetricsMap.get("syncDurationMillis").val = syncDurationMillis;
++					this.chkMetricsMap.get("alignmentDurationMillis").val = alignemnt;
++					this.chkMetricsMap.get("bytesAlignment").val = bytesAlignment;
++					this.chkMetricsMap.get("checkPointID").val = checkPointID;
++					this.chkMetricsMap.get("stateSize").val = stateSize;
++					//this.chkMetricsMap.get("countInList").val = countInList;
++
++
++					/*tmGroup.gauge("asyncDurationMillis", new Gauge<Long>() {
++						@Override
++						public Long getValue() {
++							return asyncDurationMillis;
++						}
++					});
++
++					tmGroup.gauge("syncDurationMillis", new Gauge<Long>() {
++						@Override
++						public Long getValue() {
++							return syncDurationMillis;
++						}
++					});
++
++
++					tmGroup.gauge("alignmentDurationMillis", new Gauge<Long>() {
++						@Override
++						public Long getValue() {
++							return alignemnt;
++						}
++					});
++
++
++					tmGroup.gauge("bytesAlignment", new Gauge<Long>() {
++						@Override
++						public Long getValue() {
++							return bytesAlignment;
++						}
++					});*/
++
+ 					owner.getEnvironment().acknowledgeCheckpoint(
+ 						checkpointMetaData.getCheckpointId(),
+ 						checkpointMetrics,
+@@ -1054,6 +1169,11 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 
+ 	private static final class CheckpointingOperation {
+ 
++
++
++		private HashMap<String, ChangeableGauge> chkMetricsMap;
++
++
+ 		private final StreamTask<?, ?> owner;
+ 
+ 		private final CheckpointMetaData checkpointMetaData;
+@@ -1074,7 +1194,8 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 				StreamTask<?, ?> owner,
+ 				CheckpointMetaData checkpointMetaData,
+ 				CheckpointOptions checkpointOptions,
+-				CheckpointMetrics checkpointMetrics) {
++				CheckpointMetrics checkpointMetrics,
++				HashMap<String, ChangeableGauge> chkMetricsMap) {
+ 
+ 			this.owner = Preconditions.checkNotNull(owner);
+ 			this.checkpointMetaData = Preconditions.checkNotNull(checkpointMetaData);
+@@ -1083,6 +1204,10 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 			this.allOperators = owner.operatorChain.getAllOperators();
+ 			this.nonPartitionedStates = new ArrayList<>(allOperators.length);
+ 			this.snapshotInProgressList = new ArrayList<>(allOperators.length);
++			this.chkMetricsMap = chkMetricsMap;
++
++
++
+ 		}
+ 
+ 		public void executeCheckpointing() throws Exception {
+@@ -1180,7 +1305,7 @@ public abstract class StreamTask<OUT, OP extends StreamOperator<OUT>>
+ 					snapshotInProgressList,
+ 					checkpointMetaData,
+ 					checkpointMetrics,
+-					startAsyncPartNano);
++					startAsyncPartNano, chkMetricsMap);
+ 
+ 			owner.cancelables.registerClosable(asyncCheckpointRunnable);
+ 			owner.asyncOperationsThreadPool.submit(asyncCheckpointRunnable);

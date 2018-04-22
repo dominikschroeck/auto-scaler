@@ -1,0 +1,5 @@
+org.dima.dominikschroeck.largestate.kafka
+org.dima.dominikschroeck.largestate.kafka.Jobs
+org.dima.dominikschroeck.largestate.kafka.Monitoring
+org.dima.dominikschroeck.largestate.kafka.Partitioners
+org.dima.dominikschroeck.largestate.kafka.Producers
