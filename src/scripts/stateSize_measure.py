@@ -17,7 +17,7 @@ def monitor():
         metrics = [(".stateSize",int(stateSize), time.time())]
         graphitesend.send_list(metrics)
 
-
+        time.sleep(10)
 
 
 monitor()

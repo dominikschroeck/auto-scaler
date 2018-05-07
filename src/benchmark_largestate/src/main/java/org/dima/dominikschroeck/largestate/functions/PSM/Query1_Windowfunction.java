@@ -25,10 +25,12 @@ public class Query1_Windowfunction extends RichWindowFunction<PSM_ClickEvent, Tu
     private Long waitingTime = 0L;
     private Meter meter;
     private Long overall_latency = 0L;
+    private Long parallelism = 0L;
 
-    public Query1_Windowfunction() {
+    public Query1_Windowfunction(Integer parallelism) {
         super();
         this.category_to_count = new HashMap<>();
+        this.parallelism = parallelism.longValue();
 
     }
 
@@ -63,12 +65,24 @@ public class Query1_Windowfunction extends RichWindowFunction<PSM_ClickEvent, Tu
                     }
                 });
 
+        getRuntimeContext()
+                .getMetricGroup()
+                .gauge("Query1_WindowFunction.Parallelism", new Gauge<Long>() {
+                    @Override
+                    public Long getValue() {
+                        return parallelism;
+                    }
+                });
+
+
         // Throughput
         com.codahale.metrics.Meter meter = new com.codahale.metrics.Meter();
 
         this.meter = getRuntimeContext()
                 .getMetricGroup()
                 .meter("Query1_WindowFunction.Throughput", new DropwizardMeterWrapper(meter));
+
+
         super.open(parameters);
 
 

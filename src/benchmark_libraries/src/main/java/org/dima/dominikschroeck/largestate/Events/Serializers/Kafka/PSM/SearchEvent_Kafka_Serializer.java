@@ -42,7 +42,7 @@ public class SearchEvent_Kafka_Serializer implements Serializer<PSM_SearchEvent>
 
     @Override
     public byte[] serialize(String topic, PSM_SearchEvent element) {
-        int byteBufferLength = 64 / 8 + element.getCategory ( ).length ( ) + element.getProduct ( ).length ( ) + 32 / 8 + 10;
+        int byteBufferLength = 64 / 8 + element.getCategory ( ).length ( ) + element.getProduct ( ).length ( ) + 64 / 8 + 10;
 
         ByteBufferOutput output = new ByteBufferOutput ( byteBufferLength );
         kryos.get ( ).writeObject ( output, element );

@@ -18,9 +18,10 @@ public class Query5_RichCoGroupFunction extends RichCoGroupFunction<PSM_ClickEve
     private Meter meter;
     private Long waitingtime = 0L;
     private Long overall_latency = 0L;
+    private Long parallelism = 0L;
 
-    public Query5_RichCoGroupFunction() {
-        super();
+    public Query5_RichCoGroupFunction(Integer parallelism) {
+        this.parallelism = parallelism.longValue();
     }
 
     @Override
@@ -49,6 +50,15 @@ public class Query5_RichCoGroupFunction extends RichCoGroupFunction<PSM_ClickEve
                     @Override
                     public Long getValue() {
                         return waitingtime;
+                    }
+                });
+
+        getRuntimeContext()
+                .getMetricGroup()
+                .gauge("Query5_RichCoGroupFunction.Parallelism", new Gauge<Long>() {
+                    @Override
+                    public Long getValue() {
+                        return parallelism;
                     }
                 });
 

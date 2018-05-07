@@ -118,7 +118,7 @@ class cost:
             congested = True
 
 
-        if health_index >= 0.6 and offtime_duration < config.max_downtime:
+        if health_index > 0.5 and offtime_duration < config.max_downtime:
             congested = True
 
         if health_index >= 0.7:

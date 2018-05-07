@@ -27,23 +27,25 @@ public class Query3_RichWindowFunction extends RichWindowFunction<PSM_ClickEvent
     private Long waitingTime = 0L;
     private Meter meter;
     private Long overall_latency = 0L;
+    private Long parallelism = 0L;
 
     /**
      * Set the quantile in the constructor that you want to be computed
      *
      * @param quantile
      */
-    public Query3_RichWindowFunction(Integer quantile) {
+    public Query3_RichWindowFunction(Integer quantile, Integer parallelism) {
+
         this.quantile = quantile;
+        this.parallelism = parallelism.longValue();
     }
 
     /**
      * Default constructor. Sets quantile to 50 (Median)
      */
-    public Query3_RichWindowFunction() {
-        super();
+    public Query3_RichWindowFunction(Integer parallelism) {
         this.quantile = 50;
-
+        this.parallelism = parallelism.longValue();
     }
 
     @Override
@@ -75,7 +77,14 @@ public class Query3_RichWindowFunction extends RichWindowFunction<PSM_ClickEvent
                     }
                 });
 
-
+        getRuntimeContext()
+                .getMetricGroup()
+                .gauge("Query3_RichWindowFunction.Parallelism", new Gauge<Long>() {
+                    @Override
+                    public Long getValue() {
+                        return parallelism;
+                    }
+                });
 
 
         // Throughput

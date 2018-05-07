@@ -10,7 +10,7 @@ kafka_zookeeper : 'ibm-power-3:2181'
 experiment_name : 'nexmark_5min_incremental_scale_allqueries'
 latencyTrackingInterval : '1000'
 # Benchmarks available are: psm and nexmark
-benchmark : 'nexmark'
+benchmark : 'psm'
 
 # CHECKPOINTING PARAMETERS
 # Minimum pause without checkpointing, defaults to 0

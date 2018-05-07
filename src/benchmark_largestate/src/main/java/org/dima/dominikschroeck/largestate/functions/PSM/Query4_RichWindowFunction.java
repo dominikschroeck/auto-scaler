@@ -19,9 +19,10 @@ public class Query4_RichWindowFunction extends RichWindowFunction<Tuple6<Long, S
     private Long waitingTime = 0L;
     private Meter meter;
     private Long overall_latency = 0L;
+    private Long parallelism = 0L;
 
-    public Query4_RichWindowFunction() {
-        super();
+    public Query4_RichWindowFunction(Integer parallelism) {
+        this.parallelism = parallelism.longValue();
     }
 
     @Override
@@ -50,6 +51,15 @@ public class Query4_RichWindowFunction extends RichWindowFunction<Tuple6<Long, S
                     @Override
                     public Long getValue() {
                         return waitingTime;
+                    }
+                });
+
+        getRuntimeContext()
+                .getMetricGroup()
+                .gauge("Query4_RichWindowFunction.Parallelism", new Gauge<Long>() {
+                    @Override
+                    public Long getValue() {
+                        return parallelism;
                     }
                 });
 

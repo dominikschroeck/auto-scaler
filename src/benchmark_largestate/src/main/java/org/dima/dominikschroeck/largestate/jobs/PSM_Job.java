@@ -160,7 +160,7 @@ public class PSM_Job extends Flink_Job {
         DataStream<Tuple6<Long, Long, String, String, Long, Long>> best_performance_by_category_and_owner = click_stream
                 .keyBy("owner")
                 .window(TumblingEventTimeWindows.of(Time.minutes(10)))
-                .apply(new Query1_Windowfunction())
+                .apply(new Query1_Windowfunction(query_para == 0 ? ENV.getParallelism() : query_para))
                 .name("Query1_WindowFunction")
                 .uid("Query1_WindowFunction")
                 .setParallelism(query_para == 0 ? ENV.getParallelism() : query_para)
@@ -175,7 +175,7 @@ public class PSM_Job extends Flink_Job {
         DataStream<Tuple4<Long, String, Double, Long>> median_cost_per_product = click_stream
                 .keyBy("product")
                 .countWindow(10000, 1000)
-                .apply(new Query2_RichWindowFunction(50))
+                .apply(new Query2_RichWindowFunction(50,query_para == 0 ? ENV.getParallelism() : query_para))
                 .uid("Query2_RichWindowFunction")
                 .name("Query2_RichWindowFunction")
                 .setParallelism(query_para == 0 ? ENV.getParallelism() : query_para)
@@ -191,7 +191,7 @@ public class PSM_Job extends Flink_Job {
         DataStream<Tuple4<Long, String, Double, Long>> cost_per_shop = click_stream
                 .keyBy("owner")
                 .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-                .apply(new Query3_RichWindowFunction(50))
+                .apply(new Query3_RichWindowFunction(50,query_para == 0 ? ENV.getParallelism() : query_para))
                 .uid("Query3_RichWindowFunction")
                 .name("Query3_RichWindowFunction")
                 .setParallelism(query_para == 0 ? ENV.getParallelism() : query_para)
@@ -207,7 +207,7 @@ public class PSM_Job extends Flink_Job {
                 .where(new Click_Product_Key_Selector())
                 .equalTo(new Impression_Product_Key_Selector())
                 .window(SlidingEventTimeWindows.of(Time.minutes(5), Time.minutes(1)))
-                .apply(new Query4_RichCoGroupFunction());
+                .apply(new Query4_RichCoGroupFunction(ENV.getParallelism()));
 
 
         /**
@@ -219,7 +219,7 @@ public class PSM_Job extends Flink_Job {
                         .coGroup(search_stream)
                         .where(new Click_Product_Key_Selector()).equalTo(new PSM_Search_Product_KeySelector())
                         .window(TumblingEventTimeWindows.of(Time.minutes(1)))
-                        .apply(new Query5_RichCoGroupFunction());
+                        .apply(new Query5_RichCoGroupFunction(ENV.getParallelism()));
 
 
         /**

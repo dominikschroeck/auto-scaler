@@ -6,7 +6,7 @@ from Tools.metricsReader import MetricsReader
 # exit()
 # [operator-name [latency,throughput]
 from conf import config
-from configuration_receiver.client import send_conf
+from restarter.client import send_conf
 from costFunction import costFunction
 from Tools.util import generate_metrics
 from Tools.util import read_in_system_metrics_csv

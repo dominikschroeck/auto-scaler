@@ -133,7 +133,7 @@ public class Job_starter {
 
         env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime);
 
-        env.getConfig().setAutoWatermarkInterval(10);
+        env.getConfig().setAutoWatermarkInterval(1);
 
 
         Integer para = props.getProperty("parallelism") == null ? 4 : Integer.parseInt(props.getProperty("parallelism"));
