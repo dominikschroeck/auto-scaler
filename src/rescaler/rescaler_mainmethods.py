@@ -1,16 +1,16 @@
 from Tools.configWriter import ConfigWriter
 from Tools.metricsReader import MetricsReader
-# print ('Number of arguments:', len(sys.argv), 'arguments.')
-# print ('Argument List:', str(sys.argv))
-# read config
-# exit()
-# [operator-name [latency,throughput]
 from conf import config
 from restarter.client import send_conf
-from costFunction import costFunction
+
 from Tools.util import generate_metrics
 from Tools.util import read_in_system_metrics_csv
 
+#############
+## Methods ##
+#############
+
+# This file basically contains some methods the rescaler uses. Makes the main "rescaler.py" smaller and improves readability
 
 def get_Metrics():
     # config_file = sys.argv[1]
@@ -59,19 +59,6 @@ def get_Metrics():
         if value[0] == 0.0: del System_Metrics[key]
 
     return Metrics, System_Metrics
-
-# Deprecated
-def EvaluateCost(Metrics,System_Metrics,congested_operators,operator_inputrates,all_operators):
-    print("")
-    print("****************************************")
-    print("***          Evaluating Cost         ***")
-    print("****************************************")
-    print("")
-
-
-    costfunction = costFunction()
-    scaled_operators, scaleOut= costfunction.analyze_congestion(Metrics, System_Metrics, congested_operators, config.taskmanagers, operator_inputrates, all_operators)
-    return scaled_operators, scaleOut
 
 def Scale(decision,Metrics,job_config="config.yaml",out="out.yaml"):
     if decision != None:

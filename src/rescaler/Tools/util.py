@@ -5,6 +5,11 @@ from Tools.configWriter import ConfigWriter
 
 map_joins = config.map_joins
 
+
+# Collection of Methods for different purposes
+
+
+# Obtain the Memory Percentage used of the Cluster
 def cluster_memory_index(System_Metrics,taskmanagers=config.taskmanagers):
     memory_available = config.max_heap * config.memory_fraction  # Do not forget to multiply by memory split
     ram_index = 0.0
@@ -27,7 +32,7 @@ def cluster_memory_index(System_Metrics,taskmanagers=config.taskmanagers):
     return memory_index
 
 
-
+# Get the Cluster Overall Load in Percentage (Memory and CPU)
 def cluster_health_index(System_Metrics,taskmanagers=config.taskmanagers):
     memory_available = config.max_heap * config.memory_fraction  # Do not forget to multiply by memory split
     ram_index = 0.0
@@ -60,6 +65,8 @@ def cluster_health_index(System_Metrics,taskmanagers=config.taskmanagers):
     return health_index
 
 
+
+# Generating stub Metric/Operator objects. If you want to store more metrics, add here.
 def generate_metrics(operators=config.operators,config_file="config.yaml"):
 
     config = ConfigWriter().readConfig(config_file)
@@ -150,12 +157,9 @@ def generate_metrics(operators=config.operators,config_file="config.yaml"):
         # Window Metrics
         operator_obj.add_metric("WindowSize/m1_rate")
 
-        # State Metrics
+        # Operator Parallelism
         operator_obj.add_metric("Parallelism")
 
-        #operator_obj.add_metric("syncDurationMillis")
-        #operator_obj.add_metric("asyncDurationMillis")
-        #operator_obj.add_metric("bytesAlignment")
 
         # Buffer metrics
         operator_obj.add_metric("inputQueueLength")
@@ -166,6 +170,7 @@ def generate_metrics(operators=config.operators,config_file="config.yaml"):
     return metrics
 
 
+# DEPRECATED
 def read_in_metrics_csv(filename):
     infile = open(filename, mode='r')
     reader = csv.reader(infile)
@@ -183,7 +188,7 @@ def read_in_metrics_csv(filename):
 
     return dict(zip(k, v))
 
-
+# Still used for System Metrics
 def read_in_system_metrics_csv(filename, taskmanagers, jobmanager, job_name):
     infile = open(filename, mode='r')
     reader = csv.reader(infile)
@@ -204,7 +209,7 @@ def read_in_system_metrics_csv(filename, taskmanagers, jobmanager, job_name):
 
 
 
-
+# DEPRECATED, using Metric and Operator Objects now. So no need here
 def join_nexmark_throughput(Metrics):
     Metrics["Query4_Price_per_closed_Auction_CoProcessFunction-Throughput"][0] = \
         Metrics["Query4_Price_per_closed_Auction_CoProcessFunction-Throughput_1/m1_rate"][0] + \

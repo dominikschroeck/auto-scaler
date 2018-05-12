@@ -5,16 +5,19 @@ from conf import config
 import csv
 
 
+# Rather complex class for reading Whisper files into Pyhton objects
+# Mix of two approaches: 1) Deprecated, and old: Reading into a Dict
+# 2) Reading into the classes Metric and Operator -> New and preferred way
 class MetricsReader:
     uber_list = []
 
-    # possible_hosts = ["ibm-power-1","ibm-power-2","ibm-power-3","ibm-power-4","ibm-power-5","ibm-power-6","ibm-power-7","ibm-power-8","dominikschroeck-de",]
+    # Just a small lambda for removing empty values
     def drop_nulls(self, list):
         return [x for x in list if x is not None]
 
 
 
-
+    # USE!
     def read_metrics_whisper_obj(self, metrics, start_path, operators=config.operators, level = 0):
         now = int(time.time())
         yesterday = now - (60 * config.metric_interval)
@@ -63,9 +66,8 @@ class MetricsReader:
 
 
 
-
+    # DEPRECATED BUT REQUIRED FOR SYSTEM METRICS, AS OF NOW. Did not want to use "Metric" and "Operator" Classes for the System Metrics
     def read_metrics_whisper(self, metrics, start_path, taskmanagers, level=0):
-        # Setting tiem interval to check. Setting it here makes sure to evaluate the same time for every metric, regardless how long loading takes
         now = int(time.time())
         managers = []
         for man in taskmanagers:
@@ -102,12 +104,14 @@ class MetricsReader:
                 if level < 10:
                     self.read_metrics_whisper(metrics=metrics, start_path=filename, taskmanagers=taskmanagers,level=level + 1)
 
+    # DEPRECATED
     def cleanup_latency_metrics(self,metrics):
         for key in metrics:
             if "latency" in key.lower() or "waitingtime" in key.lower():
                 metrics[key][0] = metrics[key][0] / metrics[key][2] # Value divided by Parallelism
 
 
+    # STILL USED FOR SYSTEM METRICS
     def read_metrics_whisper_to_csv(self, metrics, start_path, taskmanagers, level=0,now=int(time.time())):
         # Setting tiem interval to check. Setting it here makes sure to evaluate the same time for every metric, regardless how long loading takes
         #now = int(time.time())
@@ -153,8 +157,10 @@ class MetricsReader:
                             file.close()
             else:
                 if level < 10:
+
                     self.read_metrics_whisper_to_csv(metrics, filename,taskmanagers=taskmanagers, level=level + 1,now=now)
 
+    # USE
     def read_metrics_whisper_obj_to_csv(self, metrics, start_path, level = 0,now=int(time.time())):
         #now = int(time.time())
         yesterday = now - (60 * 300)

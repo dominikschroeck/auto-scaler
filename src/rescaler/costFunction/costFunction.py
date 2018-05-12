@@ -6,30 +6,37 @@ from Tools.configWriter import ConfigWriter
 
 
 class cost:
+
+    # Algorithm for finding the "optimal" Parallelism of an operator using throughput, input rate and parallelism
     def get_optimal_parallelism(self, operator, throughput, input_rate, parallelism):
         optimal_parallelism = 0
+
+        # Ignore AllWindow Operators
         if "allwindow" in operator.lower():
             print("Doing nothing with allwindow")
             optimal_parallelism = 1
+
+        # For Join, CoGroup and (Parallel) Windows: parallelism + 2
         elif "join" in operator.lower() or "cogroup" in operator.lower() or operator in config.map_joins or "window" in operator.lower():
 
             optimal_parallelism = parallelism + 2
 
+        # For all Continuous operators: Use heuristic
         elif throughput > 0:
             optimal_parallelism = math.ceil(input_rate / (throughput / parallelism))
+
+        # Fallback
         else:
+
             print("Throughput = 0 for operator " + operator + "! Adding two channels")
             optimal_parallelism = parallelism + 2
 
         return optimal_parallelism
 
+    # Actual Rescale Decision-Making: Definitely Scale-Up, possibly Scale-Out!
     def evaluateCost(self, Metrics, System_Metrics, Operators=config.operators):
-        # Wir nehmen an, dass wir sowieso eine ituation haben, in der wir scalen möchten
-
-        # 2 take operator with highest Latency
         print("----------------------------------------------------------------------------")
-        highest_latency = -1
-        highest_latency_operator = ""
+
         list_operators_latency = {}
         for operator in Operators:
             latency = Metrics[operator].get_latency()
@@ -45,6 +52,9 @@ class cost:
                 list_operators_latency[operator] = [latency, throughput, parallelism, input_rate]
 
 
+        ####################################
+        ##          SCALE-UP Process      ##
+        ####################################
 
         sorted_operators = [y[1] for y in
                             sorted([(list_operators_latency[x][0], x) for x in list_operators_latency.keys()])]
@@ -57,6 +67,8 @@ class cost:
         sum_throughput = 0
         sum_input_rates = 0
         print("All rescaled Operators: ")
+
+
         for operator in sorted_operators:
             latency = Metrics[operator].get_latency()
             throughput = Metrics[operator].get_metric("Throughput/m1_rate")
@@ -85,34 +97,35 @@ class cost:
                                                                             parallelism=parallelism)
                 print(operator + ", Latency = " + str(latency) + ", throughput= " + str(throughput) + ", input rate= " + str(input_rate) + " , parallelism= " + str(parallelism) + ", new parallelism= " + str(rescaled_operators[operator]))
 
-        # Performance Index
+
+        ####################################
+        ##          SCALE-OUT Process     ##
+        ####################################
+
+        # Load Indices (in %, overall Cluster)
         health_index = cluster_health_index(System_Metrics)
         memory_index = cluster_memory_index(System_Metrics)
 
+
+        # Find State Size metric
         stateSize = 0
-        currentduration = 0
         for metric in System_Metrics.keys():
             if "stateSize" in metric:
                 stateSize = stateSize + System_Metrics[metric][0]
 
-            if "lastCheckpointDuration" in metric:
-                currentduration = currentduration + System_Metrics[metric][0]
 
+        # Downtime (ONLY SCALE OUT) depends on State Migration time.
         offtime_duration = (stateSize / config.max_network) * 2
 
-        expected_improvement_min = 1- (sum_input_rates / sum_throughput)
 
         print("Offtime duration: " + str(offtime_duration))
         print("StateSize: " + str(stateSize))
-        print("Expected Minimal Improvement: " + str(expected_improvement_min))
+
 
         congested = False
 
-        # Cost for rescaling / Congestion
 
-        # We only restart if the expected restart duration is not too extrem!
-
-        # How do we incorporate StateSize!?
+        # Decision Making:
 
         if memory_index >= 0.7 and offtime_duration < config.max_downtime: # Identify Memory Congestion
             congested = True

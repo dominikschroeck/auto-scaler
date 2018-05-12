@@ -25,8 +25,6 @@ while (True):
     Metrics, System_Metrics = rescaler_mainmethods.get_Metrics()
 
     # Analyze the Latency metrics of each operator
-    # Get from Congestion Finder method, but just latency.
-    # I guess yesterday = now - 20s (of m1 rate), most closest --> DONE
 
     # Overall Analysis - Latency of queries
     latency_dict = {}
@@ -42,9 +40,9 @@ while (True):
     old_keyset = latency_dict_overall.keys()
     new_keyset = latency_dict.keys()
 
-    # 1 Wenn key_new in key_old : +1
-    # 2 Wenn key_new nicht in key_old: füge hinzu
-    # 3 Wenn key_old nicht in key_new: -1 , remove if <=0
+    # 1 IF key_new in key_old : +1
+    # 2 IF key_new not in key_old: add
+    # 3 IF key_old not in key_new: -1 , remove if <=0
 
 
 
@@ -85,19 +83,15 @@ while (True):
     if take_action:
         latency_dict_overall = {} # CLear the monito
         # Find Congested Operator(s)
-
         CostFunction = cost()
         decision = CostFunction.evaluateCost(Metrics,System_Metrics,Operators=config.operators)
+
+
         # Decide if to scale out or up
-        #scaled_operators, scaleOut = rescaler_mainmethods.EvaluateCost(Metrics, System_Metrics, congested_operators,
-                                                                       #operator_inputrates, all_operators)
-        #if scaled_operators is not None and scaleOut is not None:
         rescaler_mainmethods.Scale(decision,Metrics)
 
-        # Rather wait and extend the next time we check for latency and related problems. First, the
-        # job has to work off the backpressure
-        interval = interval * 6 # Add an approach for finding the new ID. Problem: We cannot reach the host externally -.-
-        # So I will use the new config
+
+        interval = interval * 6
         os.system("cp out.yaml config.yaml") # Use as new config file to base decisions on
 
     print("Iteration done, next one in " + str(interval) + " seconds!")
