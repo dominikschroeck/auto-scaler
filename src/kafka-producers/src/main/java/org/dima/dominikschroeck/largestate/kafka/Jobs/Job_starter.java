@@ -15,6 +15,11 @@ import org.yaml.snakeyaml.Yaml;
 public class Job_starter {
 
 
+    /**
+     * Main. Reads in the Configuration file from the Argument and Starts the Execution
+     * @param args
+     * @throws FileNotFoundException
+     */
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws FileNotFoundException {
         Yaml yaml = new Yaml();
@@ -43,6 +48,9 @@ public class Job_starter {
         }
 
 
+        /**
+         * Read Configuration
+         */
         for (String key : values.keySet()) {
             if (key.equals("parallelism")) {
                 parallelism = Integer.parseInt(values.get(key));

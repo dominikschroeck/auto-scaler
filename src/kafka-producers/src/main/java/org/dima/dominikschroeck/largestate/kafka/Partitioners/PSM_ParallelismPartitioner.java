@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
+ * Partitioner for Kafka
  * Partition by id of the producer threads. In this way, we generate one partition for each  producer thread
  */
 public class PSM_ParallelismPartitioner implements Partitioner{

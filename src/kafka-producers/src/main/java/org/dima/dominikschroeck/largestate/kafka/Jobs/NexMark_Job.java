@@ -20,6 +20,9 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Concrete Implementation of a Producer_Job for the NexMark_Benchmark
+ */
 public class NexMark_Job extends Producer_Job {
     String KAFKA_SERVER;
     String ZOOKEEPER;
@@ -33,7 +36,7 @@ public class NexMark_Job extends Producer_Job {
 
     /**
      * Static variables so producers only create auctions, persons and items for ID's that are available
-     * Hence, I store the last ID given
+     * Always store last ID
      */
     public static Integer last_auction = 0;
     public static Integer last_person = 0;
@@ -55,6 +58,9 @@ public class NexMark_Job extends Producer_Job {
         this.CHANGEINTERVAL = CHANGEINTERVAL;
     }
 
+    /**
+     * Actual Job Execution. Starts the producer Threads
+     */
     public void runJob(){
         Production_Monitoring watcher = new Production_Monitoring ();
 
@@ -81,30 +87,65 @@ public class NexMark_Job extends Producer_Job {
         }
     }
 
+    /**
+     * Generate Producer for AuctionEvents
+     * @param KAFKA_SERVER
+     * @param partitioner_classname
+     * @param Deserializer_Classname
+     * @return
+     */
     public Producer<Long, AuctionEvent> create_AuctionEvent_Producer(String KAFKA_SERVER, String partitioner_classname, String Deserializer_Classname) {
         return new KafkaProducer<>(setProperties ( KAFKA_SERVER,partitioner_classname,Deserializer_Classname ));
     }
 
+    /**
+     * Generate Producer for BidEvents
+     * @param KAFKA_SERVER
+     * @param partitioner_classname
+     * @param Deserializer_Classname
+     * @return
+     */
     public Producer<Long, BidEvent> create_BidEvent_Producer(String KAFKA_SERVER, String partitioner_classname, String Deserializer_Classname) {
         return new KafkaProducer<>(setProperties ( KAFKA_SERVER,partitioner_classname,Deserializer_Classname ));
     }
 
+    /**
+     * Generate Producer for NewPerson Events
+     * @param KAFKA_SERVER
+     * @param partitioner_classname
+     * @param Deserializer_Classname
+     * @return
+     */
     public Producer<Long, NewPersonEvent> create_NewPersonEvent_Producer(String KAFKA_SERVER, String partitioner_classname, String Deserializer_Classname) {
         return new KafkaProducer<>(setProperties ( KAFKA_SERVER,partitioner_classname,Deserializer_Classname ));
     }
 
+    /**
+     * Generate Producer for NewItem Event
+     * @param KAFKA_SERVER
+     * @param partitioner_classname
+     * @param Deserializer_Classname
+     * @return
+     */
     public Producer<Long, NewItemEvent> create_NewItemEvent_Producer(String KAFKA_SERVER, String partitioner_classname, String Deserializer_Classname) {
         return new KafkaProducer<>(setProperties ( KAFKA_SERVER,partitioner_classname,Deserializer_Classname ));
     }
 
 
+    /**
+     * Kafka General Properties
+     * @param KAFKA_SERVER
+     * @param partitioner_classname
+     * @param Deserializer_Classname
+     * @return Properties Object with your preferred Configuration. All Producers use these settings
+     */
     public Properties setProperties(String KAFKA_SERVER, String partitioner_classname, String Deserializer_Classname){
         Properties props = new Properties();
         props.put("batch.size", 16384);
         props.put("linger.ms", 10);
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                 KAFKA_SERVER);
-        props.put(ProducerConfig.CLIENT_ID_CONFIG, "KafkaExampleProducer");
+        props.put(ProducerConfig.CLIENT_ID_CONFIG, "NexMark_Producer");
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 LongSerializer.class.getName());
         props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,

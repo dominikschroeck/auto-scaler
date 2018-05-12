@@ -40,7 +40,8 @@ public class PSM_Job extends Flink_Job {
     private final String CLICK_TOPIC = "PSM_CLICKS";
     private final String IMPRESSION_TOPIC = "PSM_IMPRESSIONS";
     private final String SEARCH_TOPIC = "PSM_SEARCH";
-    //private String PRODUCT_URL = "https://stefanie.dominikschroeck.de/ads.csv";
+
+
     private String KAFKA_SERVER;
     private String ZOOKEEPER;
     private String NAME;
@@ -228,7 +229,6 @@ public class PSM_Job extends Flink_Job {
         FlinkKafkaProducer010<String> sink = new FlinkKafkaProducer010<String>(props.getProperty("kafka_server"), "psm_results", new SimpleStringSchema());
 
 
-        // --------------------------------------------------------------------------------
 
         /**
          * Actual Code for Sinks and Overall Latencies (Query 5 - 1)
