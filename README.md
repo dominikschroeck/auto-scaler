@@ -1,4 +1,4 @@
-# UNDER PROGRESS PROJECT: Building an Optimizer for Dynamic Scaling of Stream Processing Engine
+# Building an Optimizer for Dynamic Scaling of Stream Processing Engine
 
 This repo contains the code generated for the Master Thesis of Dominik Schroeck, at TU Berlin. It was supervised by Jeyhun Karimov and Bonaventura Del Monte (DFKI).
 The thesis deals with developing an optimizer that decides dynamically if scaling out of certain operators out of the streaming topology makes sense.
