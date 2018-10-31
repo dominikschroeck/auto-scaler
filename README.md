@@ -52,7 +52,7 @@ The approach is easy to udnerstand:
  - For Windows: Add 2 Channels --> Bring a better idea, please! I was fighting with different custom metrics but no solution to identify optimal parallelism!
  - For Continuous operators: Optimal Parallelism = Input Rate / Throughput Per channel
  
- --> The main idea of the approach is a combined scale out and scale up (adding a node AND increasing the parallelism).
+After computing the optimal parallelism, the algorithm checks whether the cluster runs under very high load and if scaling out (Adding one compute node) is required. 
 
 ## Compile Benchmarks and Start them
 Easiest way is to enter [src/scripts](https://gitlab.tu-berlin.de/dominikschroeck/master-thesis/tree/master/src/scripts) and run the (Linux) script build_package.sh. It will compile all relevant parts, install them to your MVN repo and output into the subdirectory "build-target".
